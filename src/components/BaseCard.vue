@@ -6,6 +6,7 @@
 
 <script>
 
+
 export default {
 
   name: "BaseCard",
@@ -17,5 +18,6 @@ export default {
   background: #011F35;
   border-radius: 16px;
   padding: 20px 32px; /* top‑bottom 20px, left‑right 32px */
+   color: #fff;
 }
 </style>
