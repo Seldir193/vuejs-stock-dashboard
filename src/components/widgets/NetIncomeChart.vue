@@ -1,3 +1,6 @@
+
+
+
 <template>
   <BaseCard class="ni-card">
     <h3 class="title">Net Income TTM</h3>
@@ -15,6 +18,19 @@ import { Chart, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from '
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 import BaseCard from '@/components/BaseCard.vue'
 import { useSevenStore } from '@/stores/useSevenStore'
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, ChartDataLabels)
 
@@ -94,6 +110,7 @@ const options = {
 
 
 
+
     y: {
      
      
@@ -112,37 +129,51 @@ const options = {
     }
   },
 
-    
 
 
-    
 
+  plugins: {
+     zeroLineOverlay: false,
+  legend: { display: false },
+  tooltip: { enabled: false },
 
-    plugins: {
-    legend: { display: false },
-    tooltip: { enabled: false },
+  
 
-    // Zahl 20px NEBEN dem Balken; nicht clippen
-    datalabels: {
-      formatter: (v, ctx) => {
-        const raw = ctx.dataset.raw?.[ctx.dataIndex] ?? 0
-        return raw.toFixed(1)
-      },
-      color: '#FFFFFF',
-      anchor: 'end',
-      align: 'right',
-      offset: 2,    // 20px Abstand
-      clamp: false,  // darf in den Padding-Bereich
-      clip: false
-    }
+  datalabels: {
+    formatter: (value, context) => {
+      const raw = context.dataset.raw?.[context.dataIndex] ?? 0;
+      return raw.toFixed(1);
+    },
+    color: ' #FFFFFF',
+     font: { weight: '700', size: 12 }, 
+    anchor: 'end', // Anker = rechtes Balkenende
+    align: (context) => {
+      const x = context.parsed?.x ?? 0;   // 0..100
+      return x <= 80 ? 'start' : 'end';   // >=80: INSIDE (links vom Anker), sonst OUTSIDE (rechts)
+    },
+    offset: (context) => {
+      const x = context.parsed?.x ?? 0;
+      return x >= 80 ? 6 : 2;            // innen kleiner Abstand, außen 20px
+    },
+    textAlign: (context) => {
+      const x = context.parsed?.x ?? 0;
+      return x >= 80 ? 'right' : 'left';  // innen rechtsbündig an der Kante
+    },
+    clamp: false,
+    clip: false
   }
-
-
 }
 
 
 
 
+
+
+
+
+
+
+}
 
 
 </script>
@@ -163,3 +194,12 @@ const options = {
 .chart-wrap{ flex:1; min-height:0; width:352px; }
 .chart-wrap canvas{ width:100%!important; height:100%!important; }
 </style>
+
+
+
+
+
+
+
+
+

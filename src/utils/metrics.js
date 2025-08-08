@@ -115,10 +115,6 @@ export function parseNetIncome(rows = []) {
 
 
 
-
-
-
-
 export function getLastMargin(rows = []) {
   if (!rows?.length) return { period: '—', value: 0 };
 
@@ -191,6 +187,8 @@ export function getLastMargin(rows = []) {
   // 4) letzter Fallback: NICHTS (statt irgendeiner 100%-Hilfsspalte)
   return { period: '—', value: 0 };
 }
+
+
 
 
 

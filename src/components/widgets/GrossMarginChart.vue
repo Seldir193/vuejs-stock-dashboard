@@ -1,8 +1,6 @@
 
 
 
-
-
 <template>
   <BaseCard class="gm-card">
     <h3 class="title">Gross Margin in % LQ</h3>
@@ -112,6 +110,7 @@ const options = {
   },
 
   plugins: {
+     zeroLineOverlay: false,
     legend: { display: false },
     tooltip: {
       callbacks: {
