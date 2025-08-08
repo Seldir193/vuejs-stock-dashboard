@@ -1,26 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <script setup>
 import { onMounted } from 'vue';
 import { useSevenStore } from '@/stores/useSevenStore';
@@ -31,84 +8,46 @@ import NetIncomeChart from '@/components/widgets/NetIncomeChart.vue';
 import GrossMarginChart from '@/components/widgets/GrossMarginChart.vue';
 import RevenueGrowthChart from '@/components/widgets/RevenueGrowthChart.vue';
 const store = useSevenStore();
-onMounted(() => store.fetchAll());   // kein top-level await nötig
-
-
-
-
-
-
-
+onMounted(() => store.fetchAll());   
 
 import { ref, nextTick, onBeforeUnmount } from 'vue';
-
-const track = ref(null);             // Zugriff auf .widget-row
-
-const showPrev  = ref(false);      // ← neuer Reactive-State
+const track = ref(null);            
+const showPrev  = ref(false);      
 const showRight = ref(false); 
-
 
 function updateButtons () {
   const el = track.value;
   if (!el) return;
-  showPrev.value = el.scrollLeft > 0;    // erst sichtbar, wenn gescrollt
+  showPrev.value = el.scrollLeft > 0;    
   showRight.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
 }
-
-
 
 function scrollNext () {
   const step = 173 + 24;
   track.value.scrollBy({ left: step * 6, behavior: 'smooth' });
-
-  /* sofort sichtbar machen */
   showPrev.value  = true;
-
-  /* bleibt: prüfen, ob rechts noch was übrig ist */
-  
   nextTick(updateButtons);
 }
-
-
-
 
 function scrollPrev () {
   const el   = track.value;
   const step = 173 + 24;
-
-  /* berechne, wo wir nach dem Scroll stehen werden */
   const newLeft = Math.max(el.scrollLeft - step * 6, 0);
-
   el.scrollBy({ left: -step * 6, behavior: 'smooth' });
-
-  /* wenn neues Ziel 0 ist → Prev sofort ausblenden */
   if (newLeft === 0) showPrev.value = false;
  nextTick(updateButtons);
 }
 
-
-
-
-
 onMounted(() => {
-  nextTick(updateButtons);                           // initial
+  nextTick(updateButtons);                           
   track.value.addEventListener('scroll', updateButtons);
-  window.addEventListener('resize', updateButtons);  // <- Zoom / Resize
+  window.addEventListener('resize', updateButtons);  
 });
 
 onBeforeUnmount(() => {
   track.value?.removeEventListener('scroll', updateButtons);
   window.removeEventListener('resize', updateButtons);
 });
-
-
-
-
-
-
-
-
-
 window.s = store;  
 </script>
 
@@ -132,13 +71,11 @@ window.s = store;
   </div>
 </div>
 
-
  <div class="chart-row">
     <RevenueChart    />
     <RevenueBreakdown />
   </div>
  
-
   <div class="chart-row" style="margin-top:20px">
     <NetIncomeChart  />
     <GrossMarginChart />
@@ -153,54 +90,36 @@ body { margin: 0; }
   background: radial-gradient(71.11% 100% at 50% 0%, #020204 14.6%, #011F35 100%);
   padding: 100px;
   box-sizing: border-box;
-  
   width: 100%;
-  
-  min-height: 100vh;
-  
-
-   
-   
-    display: flex;
-  
-    justify-content: center;
-
-    align-items: center;
+  min-height: 100vh; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
   flex-direction: column;
-
-
 }
 
-
-
 .chart-row{
-  margin-top:20px;          /* Abstand unterhalb der Kartenleiste */
+  margin-top:20px;          
   display:flex;
-  gap:32px;                 /* Abstand zwischen Chart-Cards */
+  gap:32px;                 
   width:1240px;
 }
 
-
-/* Wrapper begrenzt Breite/Höhe & ist Bezug für absolute Button-Position */
 .widget-wrapper {
-  position: relative;         /* ② Button bezieht sich darauf */
-  width: 1240px;              /* 6 Karten + 5 Gaps (173*6 + 24*5) ≈ 1240 */
-  height: 192px;              /* eine Kartenhöhe */
-  overflow: hidden;           /* zeigt nur 6 Karten, Rest wird abgeschnitten */
-  
+  position: relative;        
+  width: 1240px;              
+  height: 192px;              
+  overflow: hidden;           
 }
 
-/* .widget-row bleibt flex-scrollbar, bekommt nur Breite weg */
 .widget-row {
   display: flex;
   gap: 24px;
   overflow-x: auto;
-  overflow-y: hidden;
-              /* füllt Wrapper */
-  padding: 20px;              /* wie gehabt */
-  background: #023A6233;      /* wie bisher */
+  overflow-y: hidden;         
+  padding: 20px;             
+  background: #023A6233;     
 }
-
 
 .scroll-btn {
   position: absolute;
@@ -212,12 +131,7 @@ body { margin: 0; }
   cursor: pointer;
 }
 .scroll-btn img { width: 32px; height: 32px; }
-
 .scroll-btn.right { right: 0; }
-
-
-
-
 .scroll-btn.prev {
   left: 0;
   right: auto;

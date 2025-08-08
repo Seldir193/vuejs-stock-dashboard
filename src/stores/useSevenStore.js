@@ -1,13 +1,11 @@
-// stores/useSevenStore.js
 import { defineStore } from 'pinia';
 import { stockService } from '@/services/stockService';
 import { parseRevenue, parseNetIncome, getLastMargin } from '@/utils/metrics';
 
-
 const SYMBOLS = ['AAPL', 'META','AMZN', 'GOOG', 'MSFT', 'NVDA', 'TSLA'];
 export const useSevenStore = defineStore('seven', {
   state: () => ({
-    rows: {},         // { AAPL: [...], AMZN: [...] }
+    rows: {},         
     loading: false,
     error: null
   }),

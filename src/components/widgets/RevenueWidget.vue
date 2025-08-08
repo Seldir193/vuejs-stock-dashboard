@@ -27,7 +27,7 @@
          <img :src="arrowSrc" class="arrow" alt="arrow" />
         </div>
         <div class="percent" :class="deltaClass">
-          {{ deltaRel.toFixed(1) }}
+          {{ deltaRel.toFixed(1) }}%
 
           <img :src="percentSrc" class="percent-icon" alt="percent" />
         </div>
@@ -113,6 +113,8 @@ const formattedValue = computed(() =>
   gap: 8px;
   padding: 20px 24px;
   color: #fff;
+
+   box-sizing: border-box;
 }
 .symbol {  margin: 0;  font-family: Rubik;
 font-weight: 500;
@@ -154,6 +156,8 @@ font-weight: 500;
 font-size: 13px;
 line-height: 100%;
 letter-spacing: 0%;
+
+gap:2px;
 }
 .percent-icon { width:20px; height:20px; }
 .pos { color: #3BA752; }
@@ -177,6 +181,28 @@ letter-spacing: 0%;
 
 
 </style>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

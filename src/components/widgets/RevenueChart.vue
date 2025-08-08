@@ -1,21 +1,46 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <template>
   <BaseCard class="chart-card">
     <h3 class="title">Revenue – last 3 years</h3>
 
-    
+    <div class="chart-wrapper">
+      <Line :chart-data="data" :chart-options="options" :height="269" />
+    </div>
 
-    
-
-     <div class="chart-wrapper">
-    <Line :chart-data="data" :chart-options="options" :height="269" />
-  </div>
-
-    <!-- kompakte Legende rechts vom Chart -->
     <ul class="legend">
-      <li v-for="s in symbols" :key="s">
-        <span :style="{ background: colorMap[s] }" class="dot"></span>
-        {{ s }} 
-        <strong>{{ lastTtm[s].toFixed(1) }}</strong>
+      <li v-for="c in companies" :key="c.ticker">
+        <span class="dot" :style="{ background: c.color }"></span>
+        <span class="name">{{ c.name }}</span>
+        <strong class="value">{{ lastTtm[c.name]?.toFixed(1) }}</strong>
       </li>
     </ul>
   </BaseCard>
@@ -29,175 +54,183 @@ import {
 } from 'chart.js';
 import BaseCard from '@/components/BaseCard.vue';
 import { useSevenStore } from '@/stores/useSevenStore';
+import dayjs from 'dayjs';
+import quarterOfYear from 'dayjs/plugin/quarterOfYear';
+dayjs.extend(quarterOfYear);
 
 Chart.register(Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale);
 
-const store   = useSevenStore();
-const symbols = ['AAPL', 'META', 'MSFT', 'GOOG', 'AMZN', 'TSLA', 'NVDA'];
+const store = useSevenStore();
 
+// Namen, zugehörige Ticker und Farben
+const companies = [
+  { name: 'Tesla',     ticker: 'TSLA', color: '#093A52' },
+  { name: 'Meta',      ticker: 'META', color: '#11546F' },
+  { name: 'Nvidia',    ticker: 'NVDA', color: '#196F8C' },
+  { name: 'Amazon',    ticker: 'AMZN', color: '#218AA8' },
+  { name: 'Microsoft', ticker: 'MSFT', color: '#29A5C5' },
+  { name: 'Google',    ticker: 'GOOG', color: '#31BFE2' },
+  { name: 'Apple',     ticker: 'AAPL', color: '#39DAFF' }
+];
 
-
-/* vom schwächsten (links) zum stärksten (rechts) */
-const colorMap = {
-  TSLA:'#093A52',
-  META:'#11546F',
-  NVDA:'#196F8C',
-  AMZN:'#218AA8',
-  MSFT:'#29A5C5',
-  GOOG:'#31BFE2',
-  AAPL:'#39DAFF'
-};
-
-
-/* X-Achse = 12 Quartale (Q1 2022 … Q4 2024) */
 const labels = computed(() => {
-  const q = ['Q1','Q2','Q3','Q4'];
-  const years = [2022,2023,2024];
-  return years.flatMap(y => q.map(qt => `${qt} ${y}`));
+  const arr = [];
+  let qEnd = dayjs().subtract(1, 'quarter');
+  for (let i = 0; i < 12; i++) {
+    arr.unshift(`Q${qEnd.quarter()} ${qEnd.year()}`);
+    qEnd = qEnd.subtract(1, 'quarter');
+  }
+  return arr;
 });
 
-/* Datensätze pro Firma */
 const datasets = computed(() =>
-  symbols.map(sym => {
-    /* drei Jahre = 12 Punkte; falls weniger -> mit null auffüllen */
-    const series = store.revenueSeries(sym)
-      .slice(-12)                               // letzte 12 Quartale
-      .map(r => r.value / 1_000);               // in Mrd
-
+  companies.map(c => {
+    const series = store.revenueSeries(c.ticker)
+      .slice(-12)
+      .map(r => r.value / 1_000);
     const filled = Array.from({ length: 12 }, (_, i) => series[i] ?? null);
-
     return {
-      label: sym,
+      label: c.name,                  // (Legend ist eh aus)
       data: filled,
-      borderColor: colorMap[sym],
-      backgroundColor: colorMap[sym],
-      tension: 0.3,
+      borderColor: c.color,
+      backgroundColor: c.color,
+      cubicInterpolationMode: 'monotone', // verhindert Overshoot
+      tension: 0.2,
+      clip: { left: 0, right: 0, top: 0, bottom: 0 }, // strikt im Plotbereich
       fill: false,
       spanGaps: true
     };
   })
 );
 
-/* Letzter TTM-Wert (Summe der letzten 4 Quartale) – für die Legende */
 const lastTtm = computed(() => {
   const res = {};
-  symbols.forEach(sym => {
-    const ser = store.revenueSeries(sym).slice(-4);    // Q-1 … Q-4
-    res[sym] = ser.reduce((a,b) => a + b.value/1_000, 0);  // Mrd
+  companies.forEach(c => {
+    const ser = store.revenueSeries(c.ticker).slice(-4);
+    res[c.name] = ser.reduce((a, b) => a + b.value / 1_000, 0);
   });
   return res;
 });
 
-/* Chart-Config */
-const data    = computed(() => ({ labels: labels.value, datasets: datasets.value }));
+const data = computed(() => ({ labels: labels.value, datasets: datasets.value }));
+
 const options = {
   responsive: true,
   maintainAspectRatio: false,
-  scales: {
-    y: { beginAtZero: true, ticks: { callback:v=>v+' B' } }
+  events: [],              // keine Hover/Klicks
+  animation: false,
+  elements: {
+    point: { radius: 0, hoverRadius: 0, hitRadius: 0 }, // keine Punkte
+    line:  { borderWidth: 2 }
   },
-  plugins: { legend: { display:false } }
+  scales: {
+    x: {
+      ticks: { display: true, color: '#FFFFFF' },
+      border:{ display: true, color: '#9E9E9E', width: 1 },
+      grid:  {
+        display: true,
+        drawBorder: false, 
+        color: '#9E9E9E',
+        lineWidth: 1
+      }
+    },
+    y: {
+      min: 0,
+      suggestedMax: 150, // oben Luft (Kacheln sichtbar), aber nur bis 90 beschriften
+      ticks: {
+        stepSize: 30,
+         color:  '#FFFFFF',
+        padding: 10, // Abstand Labels ↔ Achse/Grid
+        callback: v => (Number(v) <= 90 ? v : '')
+      },
+       border:{ display: true, color: '#9E9E9E', width: 1 },
+      grid: {
+        display: true,
+        drawTicks: false,  // keine kleinen "Spitzen" ins Grid
+        drawBorder: false,
+       color: '#9E9E9E',
+         
+        lineWidth: 1,
+      }
+    }
+  },
+  plugins: {
+    legend:    { display: false },
+    tooltip:   { enabled: false, external: undefined },
+    datalabels:{ display: false } // falls global aktiv
+  }
 };
 </script>
 
 <style scoped>
+.title { color:#fff; margin:0; font: 600 20px Rubik; }
 
-
-.title { color:#fff; margin:0; font: 600 18px Rubik; }
-
-
-
-
-
-
-
-
-  /* Karte bleibt unverändert, ABER: position:relative ist schon gesetzt */
-
-/* Legende: rechts, vertikal mittig */
+/* Legende rechts absolut wie bei dir, aber mit Grid für sauberen Abstand */
 .legend{
   list-style:none;
   margin:0; padding:0;
   position:absolute;
-  top:50%;               /* Mitte */
+  top:50%;
   right:32px;
   transform:translateY(-50%);
   display:flex;
   flex-direction:column;
   gap:6px;
-  font:400 12px Rubik;
+  font:400 10px Rubik;
   color:#fff; opacity:.9;
+  max-width: 200px; /* bleibt sicher in der Card */
 }
 
-/* Farbbalken */
+.legend li{
+  display:grid;
+  grid-template-columns: 32px 1fr auto; /* Dot | Name | Zahl */
+  align-items:center;
+  column-gap:6px; /* >= 2px zwischen Name und Zahl */
+  min-width:0;
+}
+.name{ overflow-wrap:anywhere; }
+.value{
+  margin-left:4px;      /* zusätzlicher Abstand (>=2px) */
+  white-space:nowrap;   /* Zahl bleibt einzeilig */
+  text-align:right;
+}
+
 .dot{
-  width:32px; height:12px;          /* 32 × 12 px laut Vorgabe */
-  border:1px solid #ffffff33;       /* zarter Rahmen */
+  width:32px; height:12px;
+ 
+  border: 1px solid white;
   border-radius:2px;
   display:inline-block;
-  margin-right:6px;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* ② Canvas in voller Höhe/ Breite */
 .chart-wrapper canvas {
   width: 100% !important;
   height: 100% !important;
-   max-height: 269px !important;
+  max-height: 269px !important;
 }
 
-
-/* Chart: feste Breite, kein Shrinking */
 .chart-wrapper {
-  width: 540px;        /* Zielbreite  */
-  max-width: 540px;    /* Sicherheit   */
-  flex: 0 0 540px;     /* verhindert Flex-Shrinking/Growing */
-   max-height: 269px;
+  width: 540px;
+  max-width: 540px;
+  flex: 0 0 540px;
+  max-height: 269px;
 }
-
-
-
-
-
-
 
 .chart-card {
- 
-
   width: 100%;
   max-width: 714px;
-  
   padding: 20px 32px;
   background:#011F35;
   border-radius: 16px;
   display: flex;
   flex-direction: column;
   gap:20px;
-  position: relative;             /* ① Bezug für absolute Legende */
-  overflow: hidden;
+  position: relative;
+  overflow: hidden; /* nix ragt raus */
 }
 
 :deep(.chart-card) {
   width: 714px;
-  flex: 0 0 714px;     /* verhindert, dass Flexbox sie zusammenschiebt */
+  flex: 0 0 714px;
 }
-
-
-
-
-
 </style>

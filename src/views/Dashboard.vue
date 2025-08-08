@@ -1,11 +1,11 @@
 
-<script setup>
+<script setup >
 
 import RevenueWidget from '@/components/widgets/RevenueWidget.vue';
 
 import { useSevenStore } from '@/stores/useSevenStore';
 const store = useSevenStore();
-store.fetchAll();               
+ store.fetchAll();               
 </script>
 
 <template>
