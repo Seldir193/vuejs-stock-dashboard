@@ -7,6 +7,23 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <!-- src/components/widgets/RevenueBreakdown.vue -->
 <template>
   <BaseCard class="donut-card">
@@ -20,9 +37,9 @@
       <ul class="legend">
         <li v-for="name in names" :key="name">
           <div class="legend-box">
-          <span class="dot" :style="{ background: colorMap[name] }"></span>
-          {{ name }}
-          <strong>{{ ttm[name]?.toFixed(1) }}</strong>
+            <span class="dot" :style="{ background: colorMap[name] }"></span>
+            {{ name }}
+            <strong>{{ ttm[name]?.toFixed(1) }}</strong>
           </div>
         </li>
       </ul>
@@ -38,6 +55,7 @@ import { Pie } from 'vue-chartjs';
 import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 import BaseCard from '@/components/BaseCard.vue';
 import { useSevenStore } from '@/stores/useSevenStore';
+import { toQuarterLabel } from '@/utils/metrics'; // ✅ für robustes Quartalslabel
 
 Chart.register(ArcElement, Tooltip, Legend);
 
@@ -57,17 +75,28 @@ const companies = [
 const names    = companies.map(c => c.name);
 const colorMap = Object.fromEntries(companies.map(c => [c.name, c.color]));
 
+// TTM (Summe der letzten 4 Quartale) in Milliarden
 const ttm = computed(() => {
   const out = {};
   companies.forEach(({ name, ticker }) => {
-    const last4 = store.revenueSeries(ticker).slice(-4);
-    out[name] = last4.reduce((a, b) => a + b.value / 1_000, 0); // Milliarden
+    const last4 = (store.revenueSeries(ticker) ?? []).slice(-4);
+    out[name] = last4.reduce((a, b) => a + (b?.value ?? 0) / 1_000, 0);
   });
   return out;
 });
 
+// jüngstes Quartal pro Firma (für Tooltip-Footer)
+const latestQuarter = computed(() => {
+  const map = {};
+  companies.forEach(({ name, ticker }) => {
+    const last = (store.revenueSeries(ticker) ?? []).at(-1);
+    map[name] = last?.period ? toQuarterLabel(last.period) : '—';
+  });
+  return map;
+});
+
 const chartData = computed(() => ({
-  labels: names, // volle Namen im Chart (Legende deaktiviert)
+  labels: names, // volle Namen (Legend rechts ist eigene)
   datasets: [{
     data: names.map(n => ttm.value[n]),
     backgroundColor: names.map(n => colorMap[n]),
@@ -77,14 +106,37 @@ const chartData = computed(() => ({
   }]
 }));
 
+// 🔧 Nur Maus-/Tooltip-Logik geändert (alles andere bleibt gleich)
 const options = {
   responsive: true,
   maintainAspectRatio: false,
   cutout: '55%',
-  events: [], // keine Interaktion
+  // events: []  ❌ entfernt, damit Hover/Tooltip aktiviert ist
   plugins: {
     legend:   { display: false }, // eigene Legende rechts
-    tooltip:  { enabled: false }, // keine Zahlen im Canvas
+    tooltip:  {
+      enabled: true,
+      mode: 'nearest',
+      intersect: true,
+      displayColors: false,
+      callbacks: {
+        title(items) {
+          // Firmenname (Label)
+          return items?.[0]?.label ?? '';
+        },
+        label(item) {
+          // absoluter TTM-Wert in B
+          const v = item?.raw;
+          return `TTM: ${v == null || isNaN(v) ? '—' : Number(v).toFixed(2) + ' B'}`;
+        },
+        footer(items) {
+          // jüngstes Quartal der Firma
+          const name = items?.[0]?.label ?? '';
+          const q = latestQuarter.value[name] ?? '—';
+          return `latest quarter: ${q}`;
+        }
+      }
+    },
     datalabels: { display: false }
   }
 };
@@ -105,7 +157,6 @@ const options = {
 
 .title { color:#fff; margin:0; font:600 20px Rubik; }
 
-/* Donut links, Legende rechts, 32px Abstand */
 .content {
   display: flex;
   align-items: center;
@@ -119,7 +170,6 @@ const options = {
 }
 .donut-wrapper canvas { width:100%!important; height:100%!important; }
 
-/* Legende rechts */
 .legend{
   list-style:none; margin:0; padding:0;
   display:flex; flex-direction:column; gap:6px;
@@ -139,14 +189,5 @@ const options = {
   font:400 10px Rubik; color:#fff; opacity:0.7;
 }
 
-.legend-box
-{
-  display: flex;
-  gap:2px;
-}
+.legend-box { display: flex; gap:2px; }
 </style>
-
-
-
-
-

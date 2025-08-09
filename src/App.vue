@@ -7,6 +7,7 @@ import RevenueBreakdown  from '@/components/widgets/RevenueBreakdown.vue';
 import NetIncomeChart from '@/components/widgets/NetIncomeChart.vue';
 import GrossMarginChart from '@/components/widgets/GrossMarginChart.vue';
 import RevenueGrowthChart from '@/components/widgets/RevenueGrowthChart.vue';
+
 const store = useSevenStore();
 onMounted(() => store.fetchAll());   
 

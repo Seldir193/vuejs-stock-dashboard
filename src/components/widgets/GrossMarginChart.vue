@@ -1,6 +1,3 @@
-
-
-
 <template>
   <BaseCard class="gm-card">
     <h3 class="title">Gross Margin in % LQ</h3>
@@ -10,10 +7,6 @@
     </div>
   </BaseCard>
 </template>
-
-
-
-
 
 <script setup>
 import { computed } from 'vue'
@@ -27,28 +20,23 @@ Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, ChartDat
 
 const store = useSevenStore()
 
-// Amazon/Google ausgeschrieben + Farben
 const companies = [
-  { name: 'Amazon',    ticker: 'AMZN', color: '#218AA8' },
-  { name: 'Meta',      ticker: 'META', color: '#11546F' },
-  { name: 'Google',    ticker: 'GOOG', color: '#31BFE2' },
-  { name: 'Nvidia',    ticker: 'NVDA', color: '#196F8C' },
-  { name: 'Tesla',     ticker: 'TSLA', color: '#093A52' },
+  { name: 'Amazon', ticker: 'AMZN', color: '#218AA8' },
+  { name: 'Meta', ticker: 'META', color: '#11546F' },
+  { name: 'Google', ticker: 'GOOG', color: '#31BFE2' },
+  { name: 'Nvidia', ticker: 'NVDA', color: '#196F8C' },
+  { name: 'Tesla', ticker: 'TSLA', color: '#093A52' },
   { name: 'Microsoft', ticker: 'MSFT', color: '#29A5C5' },
-  { name: 'Apple',     ticker: 'AAPL', color: '#39DAFF' }
+  { name: 'Apple', ticker: 'AAPL', color: '#39DAFF' }
 ]
 
 const labels = companies.map(c => c.name)
 
-
-// %-Werte robust parsen
 function toPercent(v) {
   if (v == null) return 0
-  // Strings wie "42%", "42 %", "42,3", "0.423"
   const str = String(v).trim().replace(/\s/g, '')
   const num = Number(str.endsWith('%') ? str.slice(0, -1).replace(',', '.') : str.replace(',', '.'))
   if (!isFinite(num)) return 0
-  // Wenn es wie 0.42 aussieht -> x100, sonst lassen
   return num <= 1 ? num * 100 : num
 }
 
@@ -76,18 +64,12 @@ const data = computed(() => ({
   }]
 }))
 
-
-
-
-
-
 const options = {
   indexAxis: 'y',
   responsive: true,
   maintainAspectRatio: false,
 
   scales: {
-    // x: 0..100, 5 Kästchen (Schritt 20), **ohne** Zahlen
     x: {
       type: 'linear',
       min: 0,
@@ -96,13 +78,12 @@ const options = {
       grid: { display: true, drawTicks: false, drawBorder: false, color: '#9E9E9E', lineWidth: 1 },
       border: { display: true, color: '#9E9E9E', width: 1 }
     },
-    // y: 7 Firmen, Font-Size 10px
     y: {
       ticks: {
         color: '#FFFFFF',
         autoSkip: false,
         padding: 10,
-        font: { size: 10 }   // <<— gewünschte Schriftgröße
+        font: { size: 10 }
       },
       grid: { display: true, drawTicks: false, drawBorder: false, color: '#9E9E9E', lineWidth: 1 },
       border: { display: true, color: '#9E9E9E', width: 1 }
@@ -110,7 +91,7 @@ const options = {
   },
 
   plugins: {
-     zeroLineOverlay: false,
+    zeroLineOverlay: false,
     legend: { display: false },
     tooltip: {
       callbacks: {
@@ -126,63 +107,33 @@ const options = {
     }
   }
 }
-
-
-
-
-
-
-
-
 </script>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <style scoped>
-.gm-card{
-  padding:20px;
-  background:#011F35;
-  border-radius:16px;
-  display:flex;
-  flex-direction:column;
-  gap:16px;
+.gm-card {
+  padding: 20px;
+  background: #011F35;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   box-sizing: border-box;
 }
 
-.title{ color:#fff; margin:0; font:600 20px Rubik; }
-.chart-wrap{ flex:1; min-height:0; width:252px; }
-.chart-wrap canvas{ width:100%!important; height:100%!important; }
+.title {
+  color: #fff;
+  margin: 0;
+  font: 600 20px Rubik;
+}
+
+.chart-wrap {
+  flex: 1;
+  min-height: 0;
+  width: 252px;
+}
+
+.chart-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
 </style>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
