@@ -11,9 +11,8 @@ Displays **Revenue (Quarterly & TTM)**, **Net Income (TTM)**, **Gross Margin (LQ
 - [Widgets Charts](#widgets-charts)
 - [Configuration](#configuration)
 - [Scripts](#scripts)
-- [Quality Guidelines](#quality-guidelines)
+- [Lint & Test](#lint-test)
 - [Troubleshooting](#troubleshooting)
-- [To-Do](#to-do)
 
 ---
 
@@ -113,14 +112,20 @@ src/
 
 ---
 
-## Quality Guidelines
-- **One task per function** – Each function should handle only a single responsibility.
-- **Maximum 14 lines per function** – Longer logic should be split into helper functions.
-- **Meaningful names** – Use descriptive names for variables, functions, and components.
-- **No unused code** – Remove unused variables, imports, and commented-out code.
-- **Follow PEP 8 / ESLint rules** – Ensure the code is consistent with established style guides.
-- **Consistent formatting** – Apply Prettier or your chosen formatter before commits.
+## Lint & Test
+To maintain code quality and ensure everything works as expected, you can run the following commands:
 
+```bash
+# Check code style and find potential issues
+npm run lint
+
+# Automatically fix style issues where possible
+npm run lint:fix
+
+# Run all unit tests
+npm run test
+
+```
 ---
 
 ## Troubleshooting
@@ -132,11 +137,4 @@ src/
 
 ---
 
-## To-Do
-- Add more chart types (e.g., pie, radar).
-- Implement dark mode support.
-- Improve mobile responsiveness.
-- Add unit tests for all utility functions.
-- Enhance performance for large datasets.
 
----
