@@ -1,7 +1,6 @@
 <template>
   <BaseCard class="gm-card">
     <h3 class="title">Gross Margin in % LQ</h3>
-
     <div class="chart-wrap">
       <Bar :chart-data="data" :chart-options="options" :height="209" />
     </div>
@@ -15,6 +14,7 @@ import { Chart, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from '
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 import BaseCard from '@/components/BaseCard.vue'
 import { useSevenStore } from '@/stores/useSevenStore'
+import { toPercent, toQuarterLabel } from '@/utils/metrics'
 
 Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, ChartDataLabels)
 
@@ -32,24 +32,16 @@ const companies = [
 
 const labels = companies.map(c => c.name)
 
-function toPercent(v) {
-  if (v == null) return 0
-  const str = String(v).trim().replace(/\s/g, '')
-  const num = Number(str.endsWith('%') ? str.slice(0, -1).replace(',', '.') : str.replace(',', '.'))
-  if (!isFinite(num)) return 0
-  return num <= 1 ? num * 100 : num
-}
-
 const values = computed(() =>
-  companies.map(c => {
-    const raw = store.marginLast(c.ticker)?.value ?? 0
-    return toPercent(raw)
-  })
+  companies.map(c => toPercent(store.marginLast(c.ticker)?.value ?? 0))
 )
 
 const lastQ = computed(() => {
   const o = {}
-  companies.forEach(c => { o[c.name] = store.marginLast(c.ticker)?.period || '—' })
+  companies.forEach(c => {
+    const p = store.marginLast(c.ticker)?.period
+    o[c.name] = p ? toQuarterLabel(p) : '—'
+  })
   return o
 })
 
@@ -64,48 +56,57 @@ const data = computed(() => ({
   }]
 }))
 
+function dlFormatter(_v, ctx) {
+  const n = Number(ctx.dataset.data[ctx.dataIndex] ?? 0)
+  return `${n.toFixed(1)} %`
+}
+
+const DATALABELS = {
+  color: '#FFFFFF',
+  anchor: 'end',
+  align: 'right',
+  formatter: dlFormatter
+}
+
+const TOOLTIP = {
+  enabled: true,
+  intersect: false,
+  mode: 'nearest',
+  displayColors: false,
+  callbacks: {
+    label: (ctx) => `${(ctx.parsed.x ?? 0).toFixed(1)} %`,
+    afterLabel: (ctx) => `latest: ${lastQ.value[ctx.label] ?? '—'}`
+  }
+}
+
+const X_SCALE = {
+  type: 'linear',
+  min: 0,
+  max: 100,
+  ticks: { stepSize: 20, display: false, maxRotation: 0, minRotation: 0 },
+  grid: { display: true, drawTicks: false, drawBorder: false, color: '#9E9E9E', lineWidth: 1 },
+  border: { display: true, color: '#9E9E9E', width: 1 }
+}
+
+const Y_SCALE = {
+  ticks: { color: '#FFFFFF', autoSkip: false, padding: 10, font: { size: 10 } },
+  grid: { display: true, drawTicks: false, drawBorder: false, color: '#9E9E9E', lineWidth: 1 },
+  border: { display: true, color: '#9E9E9E', width: 1 }
+}
+
+const PLUGINS = {
+  zeroLineOverlay: false,
+  legend: { display: false },
+  tooltip: TOOLTIP,
+  datalabels: DATALABELS
+}
+
 const options = {
   indexAxis: 'y',
   responsive: true,
   maintainAspectRatio: false,
-
-  scales: {
-    x: {
-      type: 'linear',
-      min: 0,
-      max: 100,
-      ticks: { stepSize: 20, display: false, maxRotation: 0, minRotation: 0 },
-      grid: { display: true, drawTicks: false, drawBorder: false, color: '#9E9E9E', lineWidth: 1 },
-      border: { display: true, color: '#9E9E9E', width: 1 }
-    },
-    y: {
-      ticks: {
-        color: '#FFFFFF',
-        autoSkip: false,
-        padding: 10,
-        font: { size: 10 }
-      },
-      grid: { display: true, drawTicks: false, drawBorder: false, color: '#9E9E9E', lineWidth: 1 },
-      border: { display: true, color: '#9E9E9E', width: 1 }
-    }
-  },
-
-  plugins: {
-    zeroLineOverlay: false,
-    legend: { display: false },
-    tooltip: {
-      callbacks: {
-        label: (ctx) => `${(ctx.parsed.x ?? 0).toFixed(1)} %`,
-        afterLabel: (ctx) => `latest: ${lastQ.value[ctx.label]}`
-      }
-    },
-    datalabels: {
-      color: '#FFFFFF',
-      anchor: 'end',
-      align: 'right',
-      formatter: (_v, ctx) => `${Number(ctx.dataset.data[ctx.dataIndex] ?? 0).toFixed(1)} %`
-    }
-  }
+  scales: { x: X_SCALE, y: Y_SCALE },
+  plugins: PLUGINS
 }
 </script>
 
@@ -119,19 +120,16 @@ const options = {
   gap: 16px;
   box-sizing: border-box;
 }
-
 .title {
   color: #fff;
   margin: 0;
   font: 600 20px Rubik;
 }
-
 .chart-wrap {
   flex: 1;
   min-height: 0;
   width: 252px;
 }
-
 .chart-wrap canvas {
   width: 100% !important;
   height: 100% !important;

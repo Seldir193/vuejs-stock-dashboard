@@ -1,11 +1,9 @@
 <template>
   <BaseCard class="yoy-card">
     <h3 class="title">Revenue Growth in % YoY</h3>
-
     <div class="chart-wrap">
       <Bar :chart-data="chartData" :chart-options="options" :height="208" />
     </div>
-
     <div class="quarter-legend">
       <div v-for="(q, i) in legendQuarters" :key="q" class="legend-item">
         <span class="q-dot" :style="{ background: quarterShades[i] }"></span>
@@ -21,25 +19,24 @@ import { Bar } from 'vue-chartjs'
 import { Chart, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js'
 import BaseCard from '@/components/BaseCard.vue'
 import { useSevenStore } from '@/stores/useSevenStore'
-import { toQuarterLabel } from '@/utils/metrics'   
+import { toQuarterLabel } from '@/utils/metrics'
 
-const zeroLineOverlay = {
-  id: 'zeroLineOverlay',
-  afterDatasetsDraw(chart, _args, opts) {
-    const { ctx, chartArea, scales } = chart
-    if (!chartArea || !scales || !scales.y) return
-    const y0 = scales.y.getPixelForValue(0)
-    if (!Number.isFinite(y0)) return
-    ctx.save()
-    ctx.beginPath()
-    ctx.moveTo(chartArea.left, y0)
-    ctx.lineTo(chartArea.right, y0)
-    ctx.lineWidth = (opts && opts.lineWidth) || 1
-    ctx.strokeStyle = (opts && opts.color) || '#9E9E9E'
-    ctx.stroke()
-    ctx.restore()
-  }
+function zloAfterDatasetsDraw(chart, _args, opts) {
+  const { ctx, chartArea, scales } = chart
+  if (!chartArea || !scales?.y) return
+  const y0 = scales.y.getPixelForValue(0)
+  if (!Number.isFinite(y0)) return
+  ctx.save()
+  ctx.beginPath()
+  ctx.moveTo(chartArea.left, y0)
+  ctx.lineTo(chartArea.right, y0)
+  ctx.lineWidth = opts?.lineWidth ?? 1
+  ctx.strokeStyle = opts?.color ?? '#9E9E9E'
+  ctx.stroke()
+  ctx.restore()
 }
+
+const zeroLineOverlay = { id: 'zeroLineOverlay', afterDatasetsDraw: zloAfterDatasetsDraw }
 
 Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, zeroLineOverlay)
 
@@ -89,8 +86,8 @@ const legendQuarters = computed(() => {
   return ref.slice(-4).map(p => toQuarterLabel(p.period))
 })
 
-const datasets = computed(() =>
-  [0, 1, 2, 3].map(i => ({
+function buildDataset(i) {
+  return {
     label: legendQuarters.value[i] ?? `Q${i + 1}`,
     backgroundColor: quarterShades[i],
     borderColor: '#FFFFFF',
@@ -100,89 +97,79 @@ const datasets = computed(() =>
     borderRadius: 0,
     base: 0,
     clip: { left: 0, right: 0, top: 0, bottom: 0 },
-
     data: symbols.map(sym => {
       const raw = yoyMap.value[sym]?.[i]
-      if (raw == null) return null
-      return Math.min(90, Math.max(0, raw))
+      return raw == null ? null : Math.min(90, Math.max(0, raw))
     }),
-
     metaRaw: symbols.map(sym => {
       const raw = yoyMap.value[sym]?.[i]
       return Number.isFinite(raw) ? raw : null
     })
-  }))
-)
+  }
+}
+
+const datasets = computed(() => [0, 1, 2, 3].map(buildDataset))
 
 const chartData = computed(() => ({
   labels: companyLabels,
   datasets: datasets.value
 }))
 
+function ttTitle(items) {
+  return items?.[0]?.label ?? ''
+}
+function ttLabel(ctx) {
+  const raw = ctx.dataset.metaRaw?.[ctx.dataIndex]
+  if (Number.isFinite(raw)) {
+    const sign = raw > 0 ? '+' : ''
+    return `${ctx.dataset.label}: ${sign}${raw.toFixed(1)} %`
+  }
+  const v = Number(ctx.raw ?? ctx.parsed?.y ?? ctx.parsed?.x)
+  if (Number.isFinite(v)) {
+    const sign = v > 0 ? '+' : ''
+    return `${ctx.dataset.label}: ${sign}${v.toFixed(1)} %`
+  }
+  return `${ctx.dataset.label}: —`
+}
+function ttLabelColor(ctx) {
+  const color = ctx.dataset.backgroundColor
+  return { borderColor: color, backgroundColor: color }
+}
+
+const X_SCALE = {
+  ticks: { display: true, color: '#FFFFFF', font: { size: 10 }, autoSkip: false, maxRotation: 0, minRotation: 0 },
+  grid: { display: false, drawBorder: false }
+}
+const Y_SCALE = {
+  min: 0,
+  max: 90,
+  ticks: { stepSize: 10, color: '#FFFFFF', padding: 8, callback: v => v },
+  grid: { display: true, drawBorder: true, borderColor: '#9E9E9E', borderWidth: 1, drawTicks: false, color: '#9E9E9E', lineWidth: 1 }
+}
+const TOOLTIP = {
+  enabled: true,
+  mode: 'index',
+  intersect: false,
+  displayColors: true,
+  callbacks: { title: ttTitle, label: ttLabel, labelColor: ttLabelColor }
+}
+const PLUGINS = {
+  legend: { display: false },
+  tooltip: TOOLTIP,
+  datalabels: { display: false },
+  zeroLineOverlay: { color: '#9E9E9E', lineWidth: 1 }
+}
+const ELEMENTS = { bar: { minBarLength: 4 } }
+const DATASETS = { bar: { base: 0, borderWidth: 0, borderRadius: 0 } }
+
 const options = {
   responsive: true,
   maintainAspectRatio: false,
   interaction: { mode: 'index', intersect: false },
-
-  elements: {
-    bar: { minBarLength: 4 } 
-  },
-  datasets: { bar: { base: 0, borderWidth: 0, borderRadius: 0 } },
-  scales: {
-    x: {
-      ticks: { display: true, color: '#FFFFFF', font: { size: 10 }, autoSkip: false, maxRotation: 0, minRotation: 0 },
-      grid: { display: false, drawBorder: false } 
-    },
-    y: {
-      min: 0,
-      max: 90,
-      ticks: { stepSize: 10, color: '#FFFFFF', padding: 8, callback: v => v },
-      grid: {
-        display: true,            
-        drawBorder: true,        
-        borderColor: '#9E9E9E',
-        borderWidth: 1,
-        drawTicks: false,
-        color: '#9E9E9E',
-        lineWidth: 1
-      }
-    }
-  },
-
-  plugins: {
-    legend: { display: false },
-    tooltip: {
-      enabled: true,
-      mode: 'index',
-      intersect: false,
-      displayColors: true,
-      callbacks: {
-        title: (items) => items?.[0]?.label ?? '',
-        label: (ctx) => {
-          const raw = ctx.dataset.metaRaw?.[ctx.dataIndex]
-          if (Number.isFinite(raw)) {
-            const sign = raw > 0 ? '+' : ''
-            return `${ctx.dataset.label}: ${sign}${raw.toFixed(1)} %`
-          }
-        
-          const v = Number(ctx.raw ?? ctx.parsed?.y ?? ctx.parsed?.x)
-          if (Number.isFinite(v)) {
-            const sign = v > 0 ? '+' : ''
-            return `${ctx.dataset.label}: ${sign}${v.toFixed(1)} %`
-          }
-         
-          return `${ctx.dataset.label}: —`
-        },
-        labelColor: (ctx) => {
-          const color = ctx.dataset.backgroundColor
-          return { borderColor: color, backgroundColor: color }
-        }
-      }
-    },
-    datalabels: { display: false },
-    zeroLineOverlay: { color: '#9E9E9E', lineWidth: 1 }
-  },
-
+  elements: ELEMENTS,
+  datasets: DATASETS,
+  scales: { x: X_SCALE, y: Y_SCALE },
+  plugins: PLUGINS,
   layout: { padding: 0 }
 }
 </script>
@@ -254,15 +241,3 @@ const options = {
   overflow: hidden;
 }
 </style>
-
-
-
-
-
-
-
-
-
-
-
-
