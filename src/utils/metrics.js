@@ -72,31 +72,22 @@ function parseISO(s) {
 export function toDate(str = '') {
   const s = String(str).trim()
   if (!s) return new Date(NaN)
-  return (
-    parseQuarterForm(s) ||
-    parseDMY(s) ||
-    parseMDY(s) ||
-    parseMY(s) ||
-    parseISO(s) ||
-    new Date(s)
-  )
+  return parseQuarterForm(s) || parseDMY(s) || parseMDY(s) || parseMY(s) || parseISO(s) || new Date(s)
+}
+
+function formatQ(m) {
+  let y = Number(m[2])
+  if (y < 100) y = 2000 + y
+  return `Q${Number(m[1])} ${y}`
 }
 
 export function toQuarterLabel(str = '') {
   const s = String(str).trim()
   let m = /^q\s*([1-4])\s*(\d{2}|\d{4})$/i.exec(s)
   if (!m) m = /^q\s*([1-4])\s*(?:fy)?\s*['-]?\s*(\d{2,4})$/i.exec(s)
-  if (m) {
-    let y = Number(m[2])
-    if (y < 100) y = 2000 + y
-    return `Q${Number(m[1])} ${y}`
-  }
+  if (m) return formatQ(m)
   const m2 = /^(?:fy)?\s*['-]?\s*(\d{2,4})\s*q\s*([1-4])$/i.exec(s)
-  if (m2) {
-    let y = Number(m2[1])
-    if (y < 100) y = 2000 + y
-    return `Q${Number(m2[2])} ${y}`
-  }
+  if (m2) return formatQ([ m2[2], m2[1]])
   const d = toDate(s)
   if (isNaN(+d)) return s || '—'
   const qn = Math.floor(d.getMonth() / 3) + 1
@@ -171,37 +162,46 @@ function toPct(raw) {
   return Math.max(0, Math.min(100, pct))
 }
 
+function scoreRow(row) {
+  const title = row.metric || row.Metric || ''
+  let score = 0
+  if (looksGrossMargin(title)) score += 3
+  if (!looksSuspicious(title)) score += 2
+  const vals = Object.entries(row)
+    .filter(([k, v]) => k && v && !/^metric$/i.test(k) && isPeriodKey(k))
+    .map(([, v]) => toPct(v))
+    .filter(v => isFinite(v))
+  if (!vals.length) score -= 5
+  const ratio100 = vals.length ? vals.filter(v => v === 100).length / vals.length : 0
+  const ratio0 = vals.length ? vals.filter(v => v === 0).length / vals.length : 0
+  const mid = vals.slice().sort((a, b) => a - b)[Math.floor(vals.length / 2)] ?? NaN
+  if (ratio100 > 0.5) score -= 6
+  if (ratio0 > 0.5) score -= 2
+  if (isFinite(mid) && mid >= 10 && mid <= 90) score += 2
+  return { row, score }
+}
+
+function extractEntries(row) {
+  return Object.entries(row)
+    .filter(([k, v]) => k && v && !/^metric$/i.test(k) && isPeriodKey(k))
+    .map(([k, v]) => ({ key: String(k).trim(), val: toPct(v), date: toDate(k) }))
+    .filter(e => isFinite(e.val))
+}
+
+function pickChosen(entries) {
+  const lq = entries.find(e => /\b(lq|last\s*quarter|latest)\b/i.test(norm(e.key)))
+  if (lq) return lq
+  return entries.slice().sort((a, b) => (+a.date || -Infinity) - (+b.date || -Infinity)).at(-1)
+}
+
 export function getLastMargin(rows = []) {
   if (!rows?.length) return { period: '—', value: 0 }
-  const scored = rows
-    .map(r => {
-      const title = r.metric || r.Metric || ''
-      let score = 0
-      if (looksGrossMargin(title)) score += 3
-      if (!looksSuspicious(title)) score += 2
-      const vals = Object.entries(r)
-        .filter(([k, v]) => k && v && !/^metric$/i.test(k) && isPeriodKey(k))
-        .map(([, v]) => toPct(v))
-        .filter(v => isFinite(v))
-      if (!vals.length) score -= 5
-      const ratio100 = vals.length ? vals.filter(v => v === 100).length / vals.length : 0
-      const ratio0 = vals.length ? vals.filter(v => v === 0).length / vals.length : 0
-      const mid = vals.slice().sort((a, b) => a - b)[Math.floor(vals.length / 2)] ?? NaN
-      if (ratio100 > 0.5) score -= 6
-      if (ratio0 > 0.5) score -= 2
-      if (isFinite(mid) && mid >= 10 && mid <= 90) score += 2
-      return { row: r, score }
-    })
-    .sort((a, b) => b.score - a.score)
-  const best = scored[0]?.row
-  if (best && scored[0].score >= 1) {
-    const entries = Object.entries(best)
-      .filter(([k, v]) => k && v && !/^metric$/i.test(k) && isPeriodKey(k))
-      .map(([k, v]) => ({ key: String(k).trim(), val: toPct(v), date: toDate(k) }))
-      .filter(e => isFinite(e.val))
+  const scored = rows.map(scoreRow).sort((a, b) => b.score - a.score)
+  const best = scored[0]
+  if (best && best.score >= 1) {
+    const entries = extractEntries(best.row)
     if (entries.length) {
-      const lq = entries.find(e => /\b(lq|last\s*quarter|latest)\b/i.test(norm(e.key)))
-      const chosen = lq || entries.sort((a, b) => (+a.date || -Infinity) - (+b.date || -Infinity)).at(-1)
+      const chosen = pickChosen(entries)
       if (chosen && isFinite(chosen.val) && chosen.val !== 100) return { period: chosen.key, value: chosen.val }
     }
   }
@@ -221,29 +221,39 @@ function toNum(raw) {
   return isFinite(n) ? n : NaN
 }
 
-function computeGrossMarginFromComponents(rows = []) {
-  const findRow = (pred) => rows.find(r => pred(norm(r.metric || r.Metric || '')))
-  const revRow = findRow(t => /(revenue|sales)/.test(t) && !/growth|yoy|qoq|per\s*share|ttm/i.test(t))
-  const gpRow = findRow(t => /(gross\s*profit)/.test(t) && !/margin|%|percent|ratio|ttm/i.test(t))
-  if (!revRow || !gpRow) return null
-  const revEntries = Object.entries(revRow)
+function findRow(rows, pred) {
+  return rows.find(r => pred(norm(r.metric || r.Metric || '')))
+}
+
+function entriesFromRow(row) {
+  return Object.entries(row)
     .filter(([k, v]) => k && v && !/^metric$/i.test(k) && isPeriodKey(k))
     .map(([k, v]) => ({ key: String(k).trim(), val: toNum(v), date: toDate(k) }))
     .filter(e => isFinite(e.val))
-  const gpEntries = Object.entries(gpRow)
-    .filter(([k, v]) => k && v && !/^metric$/i.test(k) && isPeriodKey(k))
-    .map(([k, v]) => ({ key: String(k).trim(), val: toNum(v), date: toDate(k) }))
-    .filter(e => isFinite(e.val))
-  if (!revEntries.length || !gpEntries.length) return null
-  const byDateRev = new Map(revEntries.map(e => [+e.date, e]))
-  const commons = gpEntries.filter(e => byDateRev.has(+e.date)).sort((a, b) => (+a.date) - (+b.date))
+}
+
+function latestCommonByDate(aEntries, bEntries) {
+  const mapA = new Map(aEntries.map(e => [+e.date, e]))
+  const commons = bEntries.filter(e => mapA.has(+e.date)).sort((x, y) => (+x.date) - (+y.date))
   const last = commons.at(-1)
   if (!last) return null
-  const rev = byDateRev.get(+last.date).val
-  const gp = last.val
+  return { a: mapA.get(+last.date), b: last }
+}
+
+function computeGrossMarginFromComponents(rows = []) {
+  const revRow = findRow(rows, t => /(revenue|sales)/.test(t) && !/growth|yoy|qoq|per\s*share|ttm/i.test(t))
+  const gpRow = findRow(rows, t => /(gross\s*profit)/.test(t) && !/margin|%|percent|ratio|ttm/i.test(t))
+  if (!revRow || !gpRow) return null
+  const revEntries = entriesFromRow(revRow)
+  const gpEntries = entriesFromRow(gpRow)
+  if (!revEntries.length || !gpEntries.length) return null
+  const pair = latestCommonByDate(revEntries, gpEntries)
+  if (!pair) return null
+  const rev = pair.a.val
+  const gp = pair.b.val
   if (!(rev > 0 && gp >= 0)) return null
   const pct = Math.max(0, Math.min(100, (gp / rev) * 100))
-  return { period: last.key, value: pct }
+  return { period: pair.b.key, value: pct }
 }
 
 export function sumLastN(series = [], n = 4, accessor = (x) => x) {
@@ -269,10 +279,6 @@ export function computeYoYLast4(seriesNums = []) {
 }
 
 export const __test = { toDate, numericCells }
-
-
-
-
 
 
 
