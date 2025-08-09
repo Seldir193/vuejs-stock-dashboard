@@ -94,6 +94,17 @@ src/
 
 ---
 
+## Configuration
+- API base URL / Keys: configure in `.env` / `.env.local` (e.g. `VUE_APP_API_BASE`, `VUE_APP_API_KEY`).
+- Symbols: managed in `src/stores/useSevenStore.js` (`SYMBOLS` array).
+- Chart options: defined in each widget component under `options` / `chart-options`.
+- Feature flags (optional, Webpack DefinePlugin):
+  - `__VUE_OPTIONS_API__`: `true`
+  - `__VUE_PROD_DEVTOOLS__`: `false`
+  - `__VUE_PROD_HYDRATION_MISMATCH_DETAILS__`: `false`
+
+  ---
+
 ## Scripts
 - **npm run serve** – Starts the development server with hot-reload.
 - **npm run build** – Compiles and minifies the project for production deployment.
