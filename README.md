@@ -8,7 +8,7 @@ Displays **Revenue (Quarterly & TTM)**, **Net Income (TTM)**, **Gross Margin (LQ
 - [Quick Start](#quick-start)
 - [Project Structure](#project-structure)
 - [Data Flow](#data-flow)
-- [Widgets/Charts](#widgets-charts)
+- [Widgets Charts](#widgets-charts)
 - [Configuration](#configuration)
 - [Scripts](#scripts)
 - [Quality Guidelines](#quality-guidelines)
@@ -85,7 +85,7 @@ src/
 
 ---
 
-## Widgets/Charts
+## Widgets Charts
 - **NetIncomeChart.vue** – Displays the net income trend over multiple quarters using a bar/line chart.
 - **GrossMarginChart.vue** – Visualizes the last reported gross margin percentage with color-coded bars per company.
 - **RevenueChart.vue** – Shows total revenue over time for selected companies.
