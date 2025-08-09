@@ -11,7 +11,7 @@ Displays **Revenue (Quarterly & TTM)**, **Net Income (TTM)**, **Gross Margin (LQ
 - [Widgets Charts](#widgets-charts)
 - [Configuration](#configuration)
 - [Scripts](#scripts)
-- [Lint & Test](#lint-test)
+- [Lint Test](#lint-test)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -112,7 +112,7 @@ src/
 
 ---
 
-## Lint & Test
+## Lint Test
 To maintain code quality and ensure everything works as expected, you can run the following commands:
 
 ```bash
