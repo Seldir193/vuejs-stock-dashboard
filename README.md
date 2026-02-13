@@ -4,15 +4,17 @@ Interactive dashboard for the “Magnificent Seven” (AAPL, MSFT, AMZN, GOOG, M
 Displays **Revenue (Quarterly & TTM)**, **Net Income (TTM)**, **Gross Margin (LQ)**, **YoY Revenue Growth**, and **TTM Breakdown** via donut charts.
 
 ## Table of Contents
-- [Tech Stack](#tech-stack)
-- [Quick Start](#quick-start)
-- [Project Structure](#project-structure)
-- [Data Flow](#data-flow)
-- [Widgets Charts](#widgets-charts)
-- [Configuration](#configuration)
-- [Scripts](#scripts)
-- [Lint Test](#lint-test)
-- [Troubleshooting](#troubleshooting)
+- [Magnificent Seven – Financial Dashboard (Vue 3)](#magnificent-seven--financial-dashboard-vue-3)
+  - [Table of Contents](#table-of-contents)
+  - [Tech Stack](#tech-stack)
+  - [Quick Start](#quick-start)
+  - [Project Structure](#project-structure)
+  - [Data Flow](#data-flow)
+  - [Widgets Charts](#widgets-charts)
+  - [Configuration](#configuration)
+  - [Scripts](#scripts)
+  - [Lint Test](#lint-test)
+  - [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -94,7 +96,7 @@ src/
 ---
 
 ## Configuration
-- API base URL / Keys: configure in `.env` / `.env.local` (e.g. `VUE_APP_API_BASE`, `VUE_APP_API_KEY`).
+- SheetDB base URL: configure in `.env.local` as `VUE_APP_SHEETDB_BASE` (see `.env.example`).
 - Symbols: managed in `src/stores/useSevenStore.js` (`SYMBOLS` array).
 - Chart options: defined in each widget component under `options` / `chart-options`.
 - Feature flags (optional, Webpack DefinePlugin):

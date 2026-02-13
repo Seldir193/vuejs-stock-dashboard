@@ -47,8 +47,6 @@ function toDate(str) {
 class StockService {
   constructor() {
     this.apiClient = axios.create({
-      // baseURL: 'https://sheetdb.io/api/v1/8qaot0bu6vekv'
-      //baseURL: "https://sheetdb.io/api/v1/cj14uwz5djka4",
       baseURL: process.env.VUE_APP_SHEETDB_BASE,
     });
   }
